@@ -3,17 +3,16 @@ export interface Pitch {
   pitcher_name: string
   pitch_name: string
   stand: string
-  plate_x: number
-  plate_z: number
-  start_speed: number
-  spin_rate: number
-  description: string
-  call: string
-  events: string
+  plate_x: number | null
+  plate_z: number | null
+  start_speed: number | null
+  spin_rate: number | null
+  description: string | null
+  call: string | null
+  events: string | null
   launch_speed: number | null
   launch_angle: number | null
-  bat_speed: number | null
-  batSpeed: number | null  // API returns camelCase
+  batSpeed: number | null   // API returns camelCase
   ab_number: number
   pitch_number: number
   inning: number
@@ -39,5 +38,4 @@ export interface BoxscoreBatter {
   rbi: number
   bb: number
   k: number
-  avg?: string
 }

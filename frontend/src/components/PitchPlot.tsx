@@ -80,7 +80,7 @@ export function PitchPlot({ atBat, plotId }: Props) {
         describeCall(p.call, p.description, p.events),
         p.pitch_name,
         p.start_speed ? `${p.start_speed} mph` : null,
-        p.bat_speed != null ? `배트 ${p.bat_speed} mph` : p.batSpeed != null ? `배트 ${p.batSpeed} mph` : null,
+        p.batSpeed != null ? `배트 ${p.batSpeed} mph` : null,
         p.launch_speed != null ? `타구 ${p.launch_speed} mph` : null,
         p.launch_angle != null ? `각도 ${p.launch_angle}°` : null,
       ].filter(Boolean).join('<br>')

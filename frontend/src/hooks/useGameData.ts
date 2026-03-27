@@ -1,20 +1,36 @@
 import { useState, useCallback, useRef } from 'react'
 import type { Pitch, AtBat, BoxscoreBatter } from '../types'
 
-function extractGamePk(input: string): string | null {
-  const trimmed = input.trim()
-  // plain number
-  if (/^\d+$/.test(trimmed)) return trimmed
-  // URL with game_pk or gamePk param
-  const match = trimmed.match(/[?&](?:game_pk|gamepk|gamePk)=(\d+)/i)
-  if (match) return match[1]
-  // hash fragment (#831786)
-  const hashMatch = trimmed.match(/#(\d+)/)
-  if (hashMatch) return hashMatch[1]
-  // URL path segment (6+ digits)
-  const pathMatch = trimmed.match(/\/(\d{6,})/)
-  if (pathMatch) return pathMatch[1]
-  return null
+const WORKER_URL = import.meta.env.VITE_WORKER_URL ?? 'http://localhost:8787'
+
+// pitcher_report와 동일한 방식
+function extractGamePk(v: string): string | null {
+  const s = v.trim()
+  if (/^\d+$/.test(s)) return s
+  try {
+    const u = new URL(s.startsWith('http') ? s : `https://x.com?${s}`)
+    const g = u.searchParams.get('gamePk') ?? u.searchParams.get('game_pk')
+    if (g) return g
+  } catch { /* ignore */ }
+  const m = s.match(/#(\d+)/) ?? s.match(/\/(\d{6,})/)
+  return m ? m[1] : null
+}
+
+const NEEDED_COLS = new Set([
+  'batter_name', 'pitcher_name', 'pitch_name', 'stand',
+  'plate_x', 'plate_z', 'start_speed', 'spin_rate',
+  'description', 'call', 'events',
+  'launch_speed', 'launch_angle', 'batSpeed',
+  'ab_number', 'pitch_number', 'inning', 'inning_topbot',
+])
+
+function cleanRecord(raw: Record<string, unknown>): Pitch {
+  const out: Record<string, unknown> = {}
+  for (const k of NEEDED_COLS) {
+    const v = raw[k]
+    out[k] = (typeof v === 'number' && !isFinite(v)) ? null : (v ?? null)
+  }
+  return out as unknown as Pitch
 }
 
 function groupByAtBat(pitches: Pitch[]): AtBat[] {
@@ -52,46 +68,6 @@ export function useGameData() {
   const [gamePk, setGamePk] = useState<string>('')
   const allPitchesRef = useRef<Pitch[]>([])
 
-  const fetchData = useCallback(async (input: string, batter?: string) => {
-    const pk = extractGamePk(input)
-    if (!pk) {
-      setError('유효한 game_pk 또는 Baseball Savant URL을 입력하세요.')
-      return
-    }
-    setLoading(true)
-    setError(null)
-    try {
-      const workerUrl = import.meta.env.VITE_WORKER_URL as string
-      const res = await fetch(`${workerUrl}/gf?game_pk=${pk}`)
-      if (!res.ok) throw new Error(`Worker 응답 오류: ${res.status}`)
-      const data = await res.json()
-
-      const combined: Pitch[] = [
-        ...(data.team_home || []),
-        ...(data.team_away || []),
-      ]
-
-      allPitchesRef.current = combined
-      setGamePk(pk)
-
-      const batterSet = (Array.from(new Set(combined.map((p: Pitch) => p.batter_name))).filter(Boolean)) as string[]
-      setBatters(batterSet)
-
-      const targetBatter = batter || batterSet[0] || ''
-      setSelectedBatter(targetBatter)
-
-      const filtered = combined.filter((p: Pitch) => p.batter_name === targetBatter)
-      setAtBats(groupByAtBat(filtered))
-
-      // Fetch boxscore from MLB Stats API (CORS allowed)
-      fetchBoxscore(pk, targetBatter)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : '데이터 로드 실패')
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
   const fetchBoxscore = useCallback(async (pk: string, batterName: string) => {
     try {
       const res = await fetch(`https://statsapi.mlb.com/api/v1/game/${pk}/boxscore`)
@@ -106,7 +82,6 @@ export function useGameData() {
         }>
       }
       const allBatters: BoxscoreBatter[] = []
-
       for (const side of ['home', 'away']) {
         const battersArr = data.teams?.[side]?.batters || []
         const players = data.teams?.[side]?.players || {}
@@ -116,25 +91,64 @@ export function useGameData() {
           const stats = p.stats?.batting || {}
           allBatters.push({
             name: p.person?.fullName || '',
-            ab: stats.atBats ?? 0,
-            h: stats.hits ?? 0,
-            hr: stats.homeRuns ?? 0,
-            rbi: stats.rbi ?? 0,
-            bb: stats.baseOnBalls ?? 0,
-            k: stats.strikeOuts ?? 0,
+            ab: stats['atBats'] ?? 0,
+            h: stats['hits'] ?? 0,
+            hr: stats['homeRuns'] ?? 0,
+            rbi: stats['rbi'] ?? 0,
+            bb: stats['baseOnBalls'] ?? 0,
+            k: stats['strikeOuts'] ?? 0,
           })
         }
       }
-
-      const found = allBatters.find(b =>
-        b.name.toLowerCase().includes(batterName.toLowerCase()) ||
-        batterName.toLowerCase().includes(b.name.toLowerCase())
-      )
+      const norm = (s: string) => s.toLowerCase().replace(/[^a-z]/g, '')
+      const target = norm(batterName)
+      const found = allBatters.find(b => {
+        const n = norm(b.name)
+        return n === target || n.includes(target) || target.includes(n)
+      })
       if (found) setBoxscore(found)
-    } catch {
-      // boxscore is optional
-    }
+    } catch { /* boxscore optional */ }
   }, [])
+
+  const fetchData = useCallback(async (input: string, batter?: string) => {
+    const pk = extractGamePk(input)
+    if (!pk) {
+      setError('유효한 game_pk 또는 Baseball Savant URL을 입력하세요.')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`${WORKER_URL}/gf?game_pk=${pk}`)
+      if (!res.ok) throw new Error(`Worker 응답 오류: ${res.status}`)
+      const json = await res.json() as { team_home?: Record<string,unknown>[]; team_away?: Record<string,unknown>[] }
+
+      const combined: Pitch[] = [
+        ...(json.team_home ?? []),
+        ...(json.team_away ?? []),
+      ].map(cleanRecord)
+
+      if (!combined.length) throw new Error('투구 데이터가 없습니다.')
+
+      allPitchesRef.current = combined
+      setGamePk(pk)
+
+      const batterSet = [...new Set(combined.map(p => p.batter_name).filter(Boolean))] as string[]
+      setBatters(batterSet)
+
+      const targetBatter = batter || batterSet[0] || ''
+      setSelectedBatter(targetBatter)
+
+      const filtered = combined.filter(p => p.batter_name === targetBatter)
+      setAtBats(groupByAtBat(filtered))
+
+      fetchBoxscore(pk, targetBatter)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : '데이터 로드 실패')
+    } finally {
+      setLoading(false)
+    }
+  }, [fetchBoxscore])
 
   const changeBatter = useCallback((name: string) => {
     setSelectedBatter(name)
