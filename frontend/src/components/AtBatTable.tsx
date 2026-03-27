@@ -9,6 +9,12 @@ function formatInning(inning: number, topbot: string) {
   return `${inning}회 ${topbot === 'Top' ? '초' : '말'}`
 }
 
+function calcSprayAngle(hc_x: number | null, hc_y: number | null): string {
+  if (hc_x == null || hc_y == null) return '-'
+  const angle = Math.atan((hc_x - 125.42) / (198.27 - hc_y)) * 180 / Math.PI * 0.75
+  return `${Math.round(angle * 10) / 10}°`
+}
+
 export function AtBatTable({ atBat }: Props) {
   return (
     <table style={{
@@ -27,6 +33,7 @@ export function AtBatTable({ atBat }: Props) {
           <th style={th}>타석 결과</th>
           <th style={th}>타구 속도</th>
           <th style={th}>타구 각도</th>
+          <th style={th}>Spray Angle</th>
         </tr>
       </thead>
       <tbody>
@@ -36,6 +43,7 @@ export function AtBatTable({ atBat }: Props) {
           <td style={td}>{atBat.result || '-'}</td>
           <td style={td}>{atBat.launch_speed != null ? `${atBat.launch_speed} mph` : '-'}</td>
           <td style={td}>{atBat.launch_angle != null ? `${atBat.launch_angle}°` : '-'}</td>
+          <td style={td}>{calcSprayAngle(atBat.hc_x, atBat.hc_y)}</td>
         </tr>
       </tbody>
     </table>

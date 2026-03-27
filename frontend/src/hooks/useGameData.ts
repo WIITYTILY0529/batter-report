@@ -21,6 +21,7 @@ const NEEDED_COLS = new Set([
   'plate_x', 'plate_z', 'start_speed', 'spin_rate',
   'description', 'call', 'events',
   'launch_speed', 'launch_angle', 'batSpeed',
+  'hc_x', 'hc_y',
   'ab_number', 'pitch_number', 'inning', 'inning_topbot',
 ])
 
@@ -52,6 +53,8 @@ function groupByAtBat(pitches: Pitch[]): AtBat[] {
       result: last.events || last.description || '',
       launch_speed: last.launch_speed,
       launch_angle: last.launch_angle,
+      hc_x: last.hc_x,
+      hc_y: last.hc_y,
     })
   })
   atBats.sort((a, b) => a.ab_number - b.ab_number)
