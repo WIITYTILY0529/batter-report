@@ -116,12 +116,12 @@ export function PitchPlot({ atBat, plotId }: Props) {
       ].filter(Boolean).join('<br>')
 
       traces.push({
-        type: 'scatter',
+        type: 'scatter' as const,
         x: [p.plate_x],
         y: [p.plate_z],
-        mode: 'markers+text' as const,
+        mode: 'markers+text' as Plotly.PlotData['mode'],
         text: [`${p.pitch_number}`],
-        textposition: 'middle center',
+        textposition: 'middle center' as const,
         textfont: { size: 10, color: isStrike ? '#fff' : color },
         marker: {
           size: 28,
