@@ -1,4 +1,4 @@
-import { AtBat } from '../types'
+import type { AtBat } from '../types'
 import { COLORS } from '../constants'
 
 interface Props {

@@ -1,4 +1,4 @@
-import { BoxscoreBatter } from '../types'
+import type { BoxscoreBatter } from '../types'
 import { COLORS } from '../constants'
 
 interface Props {

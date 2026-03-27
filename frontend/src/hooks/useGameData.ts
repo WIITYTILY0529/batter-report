@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { Pitch, AtBat, BoxscoreBatter } from '../types'
+import type { Pitch, AtBat, BoxscoreBatter } from '../types'
 
 function extractGamePk(input: string): string | null {
   const trimmed = input.trim()

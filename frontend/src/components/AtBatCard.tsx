@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import html2canvas from 'html2canvas'
-import { AtBat } from '../types'
+import type { AtBat } from '../types'
 import { PitchPlot } from './PitchPlot'
 import { AtBatTable } from './AtBatTable'
 import { COLORS } from '../constants'

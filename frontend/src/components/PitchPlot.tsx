@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import Plotly from 'plotly.js-dist-min'
-import { AtBat } from '../types'
+import type { AtBat } from '../types'
 import { PITCH_COLORS, DEFAULT_PITCH_COLOR, STRIKE_ZONE, COLORS } from '../constants'
 
 interface Props {
