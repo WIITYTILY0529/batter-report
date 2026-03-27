@@ -1,78 +1,63 @@
 /**
- * Cloudflare Worker — Baseball Savant proxy
- * Exposes: GET /gf?game_pk=<id>
+ * Cloudflare Worker — Baseball Savant CORS Proxy
+ * GET /gf?game_pk=<id>
  */
 
-const ALLOWED_ORIGINS = [
-  'https://WIITYTILY0529.github.io',
-  'http://localhost:5173',
-  'http://localhost:4173',
-]
-
-function corsHeaders(origin) {
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
-  return {
-    'Access-Control-Allow-Origin': allowed,
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Max-Age': '86400',
-  }
-}
+const ALLOWED_ORIGIN = '*';
 
 export default {
   async fetch(request, _env, _ctx) {
-    const origin = request.headers.get('Origin') || ''
-    const url = new URL(request.url)
-
-    // Preflight
     if (request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders(origin) })
+      return new Response(null, { headers: corsHeaders() });
     }
 
-    if (url.pathname !== '/gf') {
-      return new Response('Not Found', { status: 404, headers: corsHeaders(origin) })
-    }
+    const url = new URL(request.url);
 
-    const gamePk = url.searchParams.get('game_pk')
-    if (!gamePk || !/^\d+$/.test(gamePk)) {
-      return new Response(JSON.stringify({ error: 'game_pk is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) },
-      })
-    }
-
-    const upstream = `https://baseballsavant.mlb.com/gf?game_pk=${gamePk}`
-
-    try {
-      const res = await fetch(upstream, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; BatterReport/1.0)',
-          'Accept': 'application/json',
-        },
-      })
-
-      if (!res.ok) {
-        return new Response(JSON.stringify({ error: `Upstream error: ${res.status}` }), {
-          status: res.status,
-          headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) },
-        })
+    if (url.pathname === '/gf') {
+      const gamePk = url.searchParams.get('game_pk');
+      if (!gamePk || !/^\d+$/.test(gamePk)) {
+        return jsonError(400, 'game_pk is required and must be numeric');
       }
 
-      const data = await res.json()
+      const savantUrl = `https://baseballsavant.mlb.com/gf?game_pk=${gamePk}`;
+      let savantRes;
+      try {
+        savantRes = await fetch(savantUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Accept': 'application/json',
+          },
+        });
+      } catch (e) {
+        return jsonError(502, `Failed to reach Baseball Savant: ${e.message}`);
+      }
 
+      if (!savantRes.ok) {
+        return jsonError(savantRes.status, 'Baseball Savant returned an error');
+      }
+
+      const data = await savantRes.json();
       return new Response(JSON.stringify(data), {
         status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-store',
-          ...corsHeaders(origin),
-        },
-      })
-    } catch (err) {
-      return new Response(JSON.stringify({ error: String(err) }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json', ...corsHeaders(origin) },
-      })
+        headers: { 'Content-Type': 'application/json', ...corsHeaders() },
+      });
     }
+
+    return jsonError(404, 'Not found. Use GET /gf?game_pk=<id>');
   },
+};
+
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+}
+
+function jsonError(status, message) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...corsHeaders() },
+  });
 }
