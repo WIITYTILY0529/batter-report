@@ -68,7 +68,7 @@ export function PitchPlot({ atBat, plotId }: Props) {
     // One trace per pitch
     for (const p of pitches) {
       const color = getPitchColor(p.pitch_name)
-      const isStrike = ['S', 'C', 'W', 'T', 'X'].includes(p.call)
+      const isStrike = ['S', 'C', 'W', 'T', 'X'].includes(p.call ?? '')
       const isInPlay = p.call === 'X' && !!p.events
 
       const markerColor = isInPlay ? '#1D6FE8' : isStrike ? color : 'rgba(0,0,0,0)'
@@ -77,7 +77,7 @@ export function PitchPlot({ atBat, plotId }: Props) {
         : { color: color, width: 2 }
 
       const hover = [
-        describeCall(p.call, p.description, p.events),
+        describeCall(p.call ?? '', p.description ?? '', p.events ?? ''),
         p.pitch_name,
         p.start_speed ? `${p.start_speed} mph` : null,
         p.batSpeed != null ? `배트 ${p.batSpeed} mph` : null,
