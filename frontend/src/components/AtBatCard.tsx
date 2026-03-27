@@ -3,6 +3,7 @@ import html2canvas from 'html2canvas'
 import type { AtBat } from '../types'
 import { PitchPlot } from './PitchPlot'
 import { AtBatTable } from './AtBatTable'
+import { PitchByPitchTable } from './PitchByPitchTable'
 import { COLORS } from '../constants'
 
 interface Props {
@@ -65,6 +66,7 @@ export function AtBatCard({ atBat }: Props) {
         <div style={{ flex: 1, minWidth: 260 }}>
           <div ref={tableRef}>
             <AtBatTable atBat={atBat} />
+            <PitchByPitchTable atBat={atBat} />
           </div>
           <button
             onClick={handleTableDownload}
