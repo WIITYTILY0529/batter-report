@@ -5,10 +5,13 @@ function extractGamePk(input: string): string | null {
   const trimmed = input.trim()
   // plain number
   if (/^\d+$/.test(trimmed)) return trimmed
-  // URL with game_pk param
-  const match = trimmed.match(/game_pk=(\d+)/)
+  // URL with game_pk or gamePk param
+  const match = trimmed.match(/[?&](?:game_pk|gamepk|gamePk)=(\d+)/i)
   if (match) return match[1]
-  // URL path segment
+  // hash fragment (#831786)
+  const hashMatch = trimmed.match(/#(\d+)/)
+  if (hashMatch) return hashMatch[1]
+  // URL path segment (6+ digits)
   const pathMatch = trimmed.match(/\/(\d{6,})/)
   if (pathMatch) return pathMatch[1]
   return null

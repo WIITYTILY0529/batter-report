@@ -13,6 +13,7 @@ export interface Pitch {
   launch_speed: number | null
   launch_angle: number | null
   bat_speed: number | null
+  batSpeed: number | null  // API returns camelCase
   ab_number: number
   pitch_number: number
   inning: number
