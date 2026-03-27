@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import Plotly from 'plotly.js-dist-min'
 import { AtBat } from '../types'
 import { PITCH_COLORS, DEFAULT_PITCH_COLOR, STRIKE_ZONE, COLORS } from '../constants'
@@ -34,51 +35,20 @@ export function PitchPlot({ atBat, plotId }: Props) {
     if (!divRef.current) return
 
     const pitches = atBat.pitches
-
-    // Group by pitch type for legend
-    const traceMap = new Map<string, {
-      x: number[], z: number[], text: string[], pitch_number: number[],
-      isFilled: boolean[], isInPlay: boolean[]
-    }>()
-
-    for (const p of pitches) {
-      const key = p.pitch_name || 'Unknown'
-      if (!traceMap.has(key)) {
-        traceMap.set(key, { x: [], z: [], text: [], pitch_number: [], isFilled: [], isInPlay: [] })
-      }
-      const t = traceMap.get(key)!
-      t.x.push(p.plate_x)
-      t.z.push(p.plate_z)
-      t.pitch_number.push(p.pitch_number)
-      const isStrike = p.call === 'S' || p.call === 'C' || p.call === 'W' || p.call === 'T' || p.call === 'X'
-      const isInPlay = p.call === 'X' && !!p.events
-      t.isFilled.push(isStrike)
-      t.isInPlay.push(isInPlay)
-
-      const hover = [
-        describeCall(p.call, p.description, p.events),
-        p.pitch_name,
-        p.start_speed ? `${p.start_speed} mph` : null,
-        p.bat_speed != null ? `배트 ${p.bat_speed} mph` : null,
-        p.launch_speed != null ? `타구 ${p.launch_speed} mph` : null,
-        p.launch_angle != null ? `각도 ${p.launch_angle}°` : null,
-      ].filter(Boolean).join('<br>')
-      t.text.push(hover)
-    }
-
-    const traces: Plotly.Data[] = []
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const traces: any[] = []
 
     // Strike zone rectangle
     traces.push({
       type: 'scatter',
       x: [STRIKE_ZONE.left, STRIKE_ZONE.right, STRIKE_ZONE.right, STRIKE_ZONE.left, STRIKE_ZONE.left],
       y: [STRIKE_ZONE.bottom, STRIKE_ZONE.bottom, STRIKE_ZONE.top, STRIKE_ZONE.top, STRIKE_ZONE.bottom],
-      mode: 'lines' as const,
+      mode: 'lines',
       line: { color: '#888', width: 2 },
       hoverinfo: 'skip',
       showlegend: false,
       name: '',
-    } as Plotly.Data)
+    })
 
     // Home plate
     const pw = 0.83
@@ -86,16 +56,16 @@ export function PitchPlot({ atBat, plotId }: Props) {
       type: 'scatter',
       x: [-pw, pw, pw, 0, -pw, -pw],
       y: [0.3, 0.3, 0.1, 0, 0.1, 0.3],
-      mode: 'lines' as const,
+      mode: 'lines',
       fill: 'toself',
       fillcolor: 'rgba(200,200,200,0.3)',
       line: { color: '#aaa', width: 1.5 },
       hoverinfo: 'skip',
       showlegend: false,
       name: '',
-    } as Plotly.Data)
+    })
 
-    // Pitch traces — one per pitch (to support per-point styling)
+    // One trace per pitch
     for (const p of pitches) {
       const color = getPitchColor(p.pitch_name)
       const isStrike = ['S', 'C', 'W', 'T', 'X'].includes(p.call)
@@ -116,12 +86,12 @@ export function PitchPlot({ atBat, plotId }: Props) {
       ].filter(Boolean).join('<br>')
 
       traces.push({
-        type: 'scatter' as const,
+        type: 'scatter',
         x: [p.plate_x],
         y: [p.plate_z],
-        mode: 'markers+text' as Plotly.PlotData['mode'],
+        mode: 'markers+text',
         text: [`${p.pitch_number}`],
-        textposition: 'middle center' as const,
+        textposition: 'middle center',
         textfont: { size: 10, color: isStrike ? '#fff' : color },
         marker: {
           size: 28,
@@ -133,8 +103,7 @@ export function PitchPlot({ atBat, plotId }: Props) {
         name: p.pitch_name,
         legendgroup: p.pitch_name,
         showlegend: false,
-        customdata: [p.pitch_number],
-      } as Plotly.Data)
+      })
     }
 
     // Legend traces (one per pitch type)
@@ -147,15 +116,15 @@ export function PitchPlot({ atBat, plotId }: Props) {
         type: 'scatter',
         x: [null],
         y: [null],
-        mode: 'markers' as const,
+        mode: 'markers',
         marker: { size: 12, color, line: { color, width: 2 } },
         name: p.pitch_name,
         legendgroup: p.pitch_name,
         showlegend: true,
-      } as Plotly.Data)
+      })
     }
 
-    const layout: Partial<Plotly.Layout> = {
+    const layout = {
       width: 320,
       height: 340,
       margin: { t: 10, b: 30, l: 30, r: 10 },
