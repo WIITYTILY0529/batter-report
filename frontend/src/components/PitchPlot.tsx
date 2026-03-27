@@ -13,19 +13,24 @@ function getPitchColor(pitchName: string): string {
   return PITCH_COLORS[pitchName] ?? DEFAULT_PITCH_COLOR
 }
 
-function describeCall(call: string, description: string, events: string): string {
-  if (events) return events
-  const map: Record<string, string> = {
-    'S': '스트라이크',
-    'C': '콜드 스트라이크',
-    'F': '파울',
-    'W': '헛스윙',
-    'B': '볼',
-    'X': '인플레이',
-    'T': '파울팁',
-    'M': '헛스윙',
-  }
-  return map[call] || description || call
+// 스트라이크존 3x3 격자 shapes
+function makeZoneShapes() {
+  const { left, right, top, bottom } = STRIKE_ZONE
+  const w = right - left
+  const h = top - bottom
+  const GRAY = '#aaaaaa'
+  return [
+    // 외곽
+    { type: 'rect', x0: left, y0: bottom, x1: right, y1: top, line: { color: '#555', width: 2 } },
+    // 세로 격자 2개
+    { type: 'line', x0: left + w/3, y0: bottom, x1: left + w/3, y1: top, line: { color: GRAY, width: 1, dash: 'dot' } },
+    { type: 'line', x0: left + w*2/3, y0: bottom, x1: left + w*2/3, y1: top, line: { color: GRAY, width: 1, dash: 'dot' } },
+    // 가로 격자 2개
+    { type: 'line', x0: left, y0: bottom + h/3, x1: right, y1: bottom + h/3, line: { color: GRAY, width: 1, dash: 'dot' } },
+    { type: 'line', x0: left, y0: bottom + h*2/3, x1: right, y1: bottom + h*2/3, line: { color: GRAY, width: 1, dash: 'dot' } },
+    // 홈플레이트
+    { type: 'path', path: 'M -0.71 0.28 L 0.71 0.28 L 0.71 0.1 L 0 -0.1 L -0.71 0.1 Z', fillcolor: 'rgba(200,200,200,0.4)', line: { color: '#999', width: 1.5 } },
+  ]
 }
 
 export function PitchPlot({ atBat, plotId }: Props) {
@@ -38,33 +43,6 @@ export function PitchPlot({ atBat, plotId }: Props) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const traces: any[] = []
 
-    // Strike zone rectangle
-    traces.push({
-      type: 'scatter',
-      x: [STRIKE_ZONE.left, STRIKE_ZONE.right, STRIKE_ZONE.right, STRIKE_ZONE.left, STRIKE_ZONE.left],
-      y: [STRIKE_ZONE.bottom, STRIKE_ZONE.bottom, STRIKE_ZONE.top, STRIKE_ZONE.top, STRIKE_ZONE.bottom],
-      mode: 'lines',
-      line: { color: '#888', width: 2 },
-      hoverinfo: 'skip',
-      showlegend: false,
-      name: '',
-    })
-
-    // Home plate
-    const pw = 0.83
-    traces.push({
-      type: 'scatter',
-      x: [-pw, pw, pw, 0, -pw, -pw],
-      y: [0.3, 0.3, 0.1, 0, 0.1, 0.3],
-      mode: 'lines',
-      fill: 'toself',
-      fillcolor: 'rgba(200,200,200,0.3)',
-      line: { color: '#aaa', width: 1.5 },
-      hoverinfo: 'skip',
-      showlegend: false,
-      name: '',
-    })
-
     // One trace per pitch
     for (const p of pitches) {
       const color = getPitchColor(p.pitch_name)
@@ -76,13 +54,13 @@ export function PitchPlot({ atBat, plotId }: Props) {
         ? { color: '#1D6FE8', width: 2 }
         : { color: color, width: 2 }
 
-      const hover = [
-        describeCall(p.call ?? '', p.description ?? '', p.events ?? ''),
-        p.pitch_name,
-        p.start_speed ? `${p.start_speed} mph` : null,
-        p.batSpeed != null ? `배트 ${p.batSpeed} mph` : null,
-        p.launch_speed != null ? `타구 ${p.launch_speed} mph` : null,
-        p.launch_angle != null ? `각도 ${p.launch_angle}°` : null,
+      const hoverLines = [
+        p.events || p.description || p.call || '',
+        p.pitch_name ? `구종: ${p.pitch_name}` : null,
+        p.start_speed != null ? `구속: ${p.start_speed} mph` : null,
+        p.batSpeed != null ? `배트 속도: ${p.batSpeed} mph` : null,
+        p.launch_speed != null ? `타구 속도: ${p.launch_speed} mph` : null,
+        p.launch_angle != null ? `타구 각도: ${p.launch_angle}°` : null,
       ].filter(Boolean).join('<br>')
 
       traces.push({
@@ -92,14 +70,14 @@ export function PitchPlot({ atBat, plotId }: Props) {
         mode: 'markers+text',
         text: [`${p.pitch_number}`],
         textposition: 'middle center',
-        textfont: { size: 10, color: isStrike ? '#fff' : color },
+        textfont: { size: 9, color: isStrike ? '#fff' : color },
         marker: {
-          size: 28,
+          size: 18,
           color: markerColor,
           line: markerLine,
-          opacity: 0.9,
+          opacity: 0.92,
         },
-        hovertemplate: `${hover}<extra></extra>`,
+        hovertemplate: `${hoverLines}<extra></extra>`,
         name: p.pitch_name,
         legendgroup: p.pitch_name,
         showlegend: false,
@@ -117,7 +95,7 @@ export function PitchPlot({ atBat, plotId }: Props) {
         x: [null],
         y: [null],
         mode: 'markers',
-        marker: { size: 12, color, line: { color, width: 2 } },
+        marker: { size: 10, color, line: { color, width: 2 } },
         name: p.pitch_name,
         legendgroup: p.pitch_name,
         showlegend: true,
@@ -126,30 +104,31 @@ export function PitchPlot({ atBat, plotId }: Props) {
 
     const layout = {
       width: 320,
-      height: 340,
+      height: 360,
       margin: { t: 10, b: 30, l: 30, r: 10 },
+      shapes: makeZoneShapes(),
       xaxis: {
         range: [-2.5, 2.5],
         zeroline: false,
         showgrid: false,
         tickfont: { size: 10, color: COLORS.GRAY_MID },
-        title: { text: 'plate_x', font: { size: 10 } },
+        fixedrange: true,
       },
       yaxis: {
-        range: [-0.2, 5],
+        range: [-0.5, 5.2],
         zeroline: false,
         showgrid: false,
         tickfont: { size: 10, color: COLORS.GRAY_MID },
-        title: { text: 'plate_z', font: { size: 10 } },
         scaleanchor: 'x',
         scaleratio: 1,
+        fixedrange: true,
       },
       paper_bgcolor: COLORS.CREAM,
       plot_bgcolor: COLORS.CREAM,
       legend: {
         orientation: 'h',
         x: 0,
-        y: -0.12,
+        y: -0.1,
         font: { size: 10 },
       },
       showlegend: true,
@@ -164,7 +143,7 @@ export function PitchPlot({ atBat, plotId }: Props) {
       format: 'png',
       filename: `ab_${atBat.ab_number}_plot`,
       width: 320,
-      height: 340,
+      height: 360,
     })
   }
 
