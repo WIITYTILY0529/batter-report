@@ -34,6 +34,8 @@ export function AtBatTable({ atBat }: Props) {
           <th style={th}>타구 속도</th>
           <th style={th}>타구 각도</th>
           <th style={th}>Spray Angle</th>
+          <th style={th}>비거리</th>
+          <th style={th}>xBA</th>
         </tr>
       </thead>
       <tbody>
@@ -44,6 +46,8 @@ export function AtBatTable({ atBat }: Props) {
           <td style={td}>{atBat.launch_speed != null ? `${atBat.launch_speed} mph` : '-'}</td>
           <td style={td}>{atBat.launch_angle != null ? `${atBat.launch_angle}°` : '-'}</td>
           <td style={td}>{calcSprayAngle(atBat.hc_x, atBat.hc_y)}</td>
+          <td style={td}>{atBat.hit_distance != null ? `${atBat.hit_distance} ft` : '-'}</td>
+          <td style={td}>{atBat.xba != null ? atBat.xba : '-'}</td>
         </tr>
       </tbody>
     </table>

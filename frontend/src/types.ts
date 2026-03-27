@@ -12,9 +12,11 @@ export interface Pitch {
   events: string | null
   launch_speed: number | null
   launch_angle: number | null
-  batSpeed: number | null   // API returns camelCase
+  batSpeed: number | null
   hc_x: number | null
   hc_y: number | null
+  hit_distance: number | null
+  xba: number | null
   ab_number: number
   pitch_number: number
   inning: number
@@ -32,6 +34,8 @@ export interface AtBat {
   launch_angle: number | null
   hc_x: number | null
   hc_y: number | null
+  hit_distance: number | null
+  xba: number | null
 }
 
 export interface BoxscoreBatter {
