@@ -55,7 +55,8 @@ export function PitchPlot({ atBat, plotId }: Props) {
         : { color: color, width: 2 }
 
       const hoverLines = [
-        p.events || p.description || p.call || '',
+        p.events ? `결과: ${p.events}` : null,
+        p.description ? `${p.description}` : null,
         p.pitch_name ? `구종: ${p.pitch_name}` : null,
         p.start_speed != null ? `구속: ${p.start_speed} mph` : null,
         p.batSpeed != null ? `배트 속도: ${p.batSpeed} mph` : null,
