@@ -135,3 +135,59 @@ body {
   flex-direction: column;
   gap: 0;
 }
+
+.input-section {
+  background: #111f30;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 8px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.input-label {
+  font-size: 11px;
+  color: #C8D0DC;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.date-input {
+  padding: 9px 12px;
+  border-radius: 6px;
+  border: 1.5px solid #C8D0DC;
+  background: #F5F6FA;
+  color: #0D1B2A;
+  font-size: 14px;
+  outline: none;
+}
+
+.date-input:focus {
+  border-color: #F4B942;
+}
+
+.btn-refresh {
+  padding: 7px 14px;
+  background: #1B3A5C;
+  color: #F5F6FA;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+}
+
+.btn-refresh:hover:not(:disabled) {
+  opacity: 0.8;
+}
+
+.btn-refresh:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

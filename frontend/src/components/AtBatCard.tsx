@@ -57,7 +57,7 @@ export function AtBatCard({ atBat }: Props) {
         }}>
           {atBat.ab_number}
         </span>
-        <span>{formatInning(atBat.inning, atBat.inning_topbot)} · {atBat.pitcher_name}</span>
+        <span>{formatInning(atBat.inning, atBat.inning_topbot)} · vs {atBat.pitcher_name}{atBat.p_throws ? ` (${atBat.p_throws === 'R' ? 'RHP' : atBat.p_throws === 'L' ? 'LHP' : atBat.p_throws})` : ''}</span>
       </div>
 
       <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>

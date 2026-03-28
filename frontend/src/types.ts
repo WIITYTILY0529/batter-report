@@ -1,8 +1,9 @@
 export interface Pitch {
   batter_name: string
   pitcher_name: string
+  p_throws: string | null
   pitch_name: string
-  stand: string
+  stand: string | null
   plate_x: number | null
   plate_z: number | null
   start_speed: number | null
@@ -29,6 +30,7 @@ export interface AtBat {
   inning: number
   inning_topbot: string
   pitcher_name: string
+  p_throws: string | null
   result: string
   launch_speed: number | null
   launch_angle: number | null
@@ -40,10 +42,16 @@ export interface AtBat {
 
 export interface BoxscoreBatter {
   name: string
+  stand: string
   ab: number
   h: number
   hr: number
   rbi: number
   bb: number
   k: number
+}
+
+export interface GameOption {
+  gamePk: string
+  label: string
 }
