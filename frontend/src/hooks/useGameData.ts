@@ -4,9 +4,11 @@ import type { Pitch, AtBat, BoxscoreBatter, GameOption } from '../types'
 const WORKER_URL = import.meta.env.VITE_WORKER_URL ?? 'http://localhost:8787'
 
 function getYesterday(): string {
-  const d = new Date()
-  d.setDate(d.getDate() - 1)
-  return d.toISOString().slice(0, 10)
+  // KST = UTC+9, 한국 시간 기준 어제 날짜
+  const now = new Date()
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000)
+  kst.setUTCDate(kst.getUTCDate() - 1)
+  return kst.toISOString().slice(0, 10)
 }
 
 function extractGamePk(v: string): string | null {
