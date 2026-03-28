@@ -191,3 +191,46 @@ body {
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+/* ── 모바일 최적화 ─────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .app-root {
+    padding: 0 8px 40px;
+  }
+
+  .app-header h1 {
+    font-size: 18px;
+  }
+
+  .input-section {
+    padding: 12px 10px;
+  }
+
+  .input-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .input-row .btn-primary {
+    width: 100%;
+  }
+
+  .batter-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .batter-select {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .game-input {
+    min-width: unset;
+    width: 100%;
+  }
+
+  .auto-label {
+    font-size: 12px;
+  }
+}

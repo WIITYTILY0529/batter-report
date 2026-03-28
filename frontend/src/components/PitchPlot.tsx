@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import Plotly from 'plotly.js-dist-min'
 import type { AtBat } from '../types'
@@ -13,48 +13,56 @@ function getPitchColor(pitchName: string): string {
   return PITCH_COLORS[pitchName] ?? DEFAULT_PITCH_COLOR
 }
 
-// 스트라이크존 3x3 격자 shapes
 function makeZoneShapes() {
   const { left, right, top, bottom } = STRIKE_ZONE
   const w = right - left
   const h = top - bottom
   const GRAY = '#aaaaaa'
   return [
-    // 외곽
     { type: 'rect', x0: left, y0: bottom, x1: right, y1: top, line: { color: '#555', width: 2 } },
-    // 세로 격자 2개
     { type: 'line', x0: left + w/3, y0: bottom, x1: left + w/3, y1: top, line: { color: GRAY, width: 1, dash: 'dot' } },
     { type: 'line', x0: left + w*2/3, y0: bottom, x1: left + w*2/3, y1: top, line: { color: GRAY, width: 1, dash: 'dot' } },
-    // 가로 격자 2개
     { type: 'line', x0: left, y0: bottom + h/3, x1: right, y1: bottom + h/3, line: { color: GRAY, width: 1, dash: 'dot' } },
     { type: 'line', x0: left, y0: bottom + h*2/3, x1: right, y1: bottom + h*2/3, line: { color: GRAY, width: 1, dash: 'dot' } },
-    // 홈플레이트
     { type: 'path', path: 'M -0.71 0.28 L 0.71 0.28 L 0.71 0.1 L 0 -0.1 L -0.71 0.1 Z', fillcolor: 'rgba(200,200,200,0.4)', line: { color: '#999', width: 1.5 } },
   ]
 }
 
 export function PitchPlot({ atBat, plotId }: Props) {
+  const wrapRef = useRef<HTMLDivElement>(null)
   const divRef = useRef<HTMLDivElement>(null)
+  const [plotSize, setPlotSize] = useState(300)
+
+  // ResizeObserver로 컨테이너 실제 너비 측정
+  useEffect(() => {
+    if (!wrapRef.current) return
+    const ro = new ResizeObserver(entries => {
+      const w = entries[0]?.contentRect.width
+      if (w && w > 0) setPlotSize(Math.floor(w))
+    })
+    ro.observe(wrapRef.current)
+    return () => ro.disconnect()
+  }, [])
 
   useEffect(() => {
-    if (!divRef.current) return
+    if (!divRef.current || plotSize <= 0) return
 
     const pitches = atBat.pitches
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const traces: any[] = []
 
-    // One trace per pitch
     for (const p of pitches) {
       const color = getPitchColor(p.pitch_name)
       const isStrike = ['S', 'C', 'W', 'T', 'X'].includes(p.call ?? '')
       const isInPlay = p.call === 'X' && !!p.events
+      const isLastPitch = p.pitch_number === pitches[pitches.length - 1].pitch_number
 
       const markerColor = isInPlay ? '#1D6FE8' : isStrike ? color : 'rgba(0,0,0,0)'
-      const markerLine = isInPlay
-        ? { color: '#1D6FE8', width: 2 }
-        : { color: color, width: 2 }
+      const markerLine = isInPlay ? { color: '#1D6FE8', width: 2 } : { color: color, width: 2 }
 
-      const isLastPitch = p.pitch_number === pitches[pitches.length - 1].pitch_number
+      const markerSize = Math.max(14, Math.round(plotSize * 0.055))
+      const fontSize = Math.max(8, Math.round(plotSize * 0.028))
+
       const hoverLines = [
         isLastPitch && p.events ? `결과: ${p.events}` : null,
         p.description ? `${p.description}` : null,
@@ -72,13 +80,8 @@ export function PitchPlot({ atBat, plotId }: Props) {
         mode: 'markers+text',
         text: [`${p.pitch_number}`],
         textposition: 'middle center',
-        textfont: { size: 9, color: isStrike ? '#fff' : color },
-        marker: {
-          size: 18,
-          color: markerColor,
-          line: markerLine,
-          opacity: 0.92,
-        },
+        textfont: { size: fontSize, color: isStrike ? '#fff' : color },
+        marker: { size: markerSize, color: markerColor, line: markerLine, opacity: 0.92 },
         hovertemplate: `${hoverLines}<extra></extra>`,
         name: p.pitch_name,
         legendgroup: p.pitch_name,
@@ -86,85 +89,63 @@ export function PitchPlot({ atBat, plotId }: Props) {
       })
     }
 
-    // Legend traces (one per pitch type)
+    // Legend traces
     const seenTypes = new Set<string>()
     for (const p of pitches) {
       if (seenTypes.has(p.pitch_name)) continue
       seenTypes.add(p.pitch_name)
       const color = getPitchColor(p.pitch_name)
       traces.push({
-        type: 'scatter',
-        x: [null],
-        y: [null],
-        mode: 'markers',
+        type: 'scatter', x: [null], y: [null], mode: 'markers',
         marker: { size: 10, color, line: { color, width: 2 } },
-        name: p.pitch_name,
-        legendgroup: p.pitch_name,
-        showlegend: true,
+        name: p.pitch_name, legendgroup: p.pitch_name, showlegend: true,
       })
     }
 
+    const legendFontSize = Math.max(9, Math.round(plotSize * 0.032))
+    const margin = plotSize < 280 ? { t: 6, b: 24, l: 24, r: 6 } : { t: 10, b: 30, l: 30, r: 10 }
+
     const layout = {
-      width: 320,
-      height: 360,
-      margin: { t: 10, b: 30, l: 30, r: 10 },
+      width: plotSize,
+      height: plotSize,
+      margin,
       shapes: makeZoneShapes(),
       xaxis: {
-        range: [-2.5, 2.5],
-        zeroline: false,
-        showgrid: false,
-        tickfont: { size: 10, color: COLORS.GRAY_MID },
-        fixedrange: true,
+        range: [-2.5, 2.5], zeroline: false, showgrid: false,
+        tickfont: { size: 9, color: COLORS.GRAY_MID }, fixedrange: true,
       },
       yaxis: {
-        range: [-0.5, 5.2],
-        zeroline: false,
-        showgrid: false,
-        tickfont: { size: 10, color: COLORS.GRAY_MID },
-        scaleanchor: 'x',
-        scaleratio: 1,
-        fixedrange: true,
+        range: [-0.5, 5.2], zeroline: false, showgrid: false,
+        tickfont: { size: 9, color: COLORS.GRAY_MID },
+        scaleanchor: 'x', scaleratio: 1, fixedrange: true,
       },
       paper_bgcolor: COLORS.CREAM,
       plot_bgcolor: COLORS.CREAM,
-      legend: {
-        orientation: 'h',
-        x: 0,
-        y: -0.1,
-        font: { size: 10 },
-      },
+      legend: { orientation: 'h', x: 0, y: -0.08, font: { size: legendFontSize } },
       showlegend: true,
     }
 
     Plotly.react(divRef.current, traces, layout, { displayModeBar: false, responsive: false })
-  }, [atBat])
+  }, [atBat, plotSize])
 
   const handleDownload = () => {
     if (!divRef.current) return
     Plotly.downloadImage(divRef.current, {
       format: 'png',
       filename: `ab_${atBat.ab_number}_plot`,
-      width: 320,
-      height: 360,
+      width: plotSize,
+      height: plotSize,
     })
   }
 
   return (
-    <div>
+    <div ref={wrapRef} style={{ width: '100%' }}>
       <div ref={divRef} id={plotId} />
-      <button
-        onClick={handleDownload}
-        style={{
-          marginTop: 4,
-          padding: '4px 12px',
-          fontSize: 12,
-          background: COLORS.NAVY,
-          color: COLORS.CREAM,
-          border: 'none',
-          borderRadius: 4,
-          cursor: 'pointer',
-        }}
-      >
+      <button onClick={handleDownload} style={{
+        marginTop: 4, padding: '4px 12px', fontSize: 12,
+        background: COLORS.NAVY, color: COLORS.CREAM,
+        border: 'none', borderRadius: 4, cursor: 'pointer',
+      }}>
         Download PNG
       </button>
     </div>

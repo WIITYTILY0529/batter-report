@@ -61,9 +61,11 @@ export function AtBatCard({ atBat }: Props) {
       </div>
 
       <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <PitchPlot atBat={atBat} plotId={plotId} />
+        <div style={{ flex: '0 0 min(100%, 340px)', minWidth: 0 }}>
+          <PitchPlot atBat={atBat} plotId={plotId} />
+        </div>
 
-        <div style={{ flex: 1, minWidth: 260 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div ref={tableRef}>
             <AtBatTable atBat={atBat} />
             <PitchByPitchTable atBat={atBat} />
