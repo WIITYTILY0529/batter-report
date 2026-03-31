@@ -60,8 +60,14 @@ export function PitchPlot({ atBat, plotId }: Props) {
       const markerColor = isInPlay ? '#1D6FE8' : isStrike ? color : 'rgba(0,0,0,0)'
       const markerLine = isInPlay ? { color: '#1D6FE8', width: 2 } : { color: color, width: 2 }
 
-      const markerSize = Math.max(14, Math.round(plotSize * 0.055))
-      const fontSize = Math.max(8, Math.round(plotSize * 0.028))
+      // 야구공: 둘레 9인치 → 지름 = 9/π ≈ 2.864인치 = 0.2387 ft
+      // margin 제외한 실제 플롯 영역 기준으로 픽셀 변환
+      const BALL_DIAMETER_FT = 9 / Math.PI / 12  // ft
+      const X_RANGE_FT = 5.0  // -2.5 ~ 2.5
+      const marginLR = plotSize < 280 ? 24 + 6 : 30 + 10
+      const plotAreaPx = plotSize - marginLR
+      const markerSize = Math.round((BALL_DIAMETER_FT / X_RANGE_FT) * plotAreaPx)
+      const fontSize = Math.max(7, Math.round(markerSize * 0.45))
 
       const hoverLines = [
         isLastPitch && p.events ? `결과: ${p.events}` : null,
